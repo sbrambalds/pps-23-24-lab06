@@ -29,15 +29,17 @@ object ConferenceReviewing:
 
     override def loadReview(article: Int, relevance: Int, significance: Int, confidence: Int, fin: Int): Unit = articlesScores = articlesScores.::((article, HashMap[Question, Int]().fillMap(relevance: Int, significance: Int, confidence: Int, fin: Int)))
 
-    override def orderedScores(article: Int, question: Question): List[Int] = articlesScores.collect( { case (a, v) if a == article => v(question)} ).sortWith(_ < _)
+    override def orderedScores(article: Int, question: Question): List[Int] = scoresOfQuestion(article, question).sortWith(_ < _)
 
-    override def averageFinalScore(article: Int): Double = articlesScores.collect( { case (a, v) if a == article => v(Final())} ).sum.toDouble/articlesScores.collect( { case (a, v) if a == article => v(Final())} ).length.toDouble
+    override def averageFinalScore(article: Int): Double = scoresOfQuestion(article, Final()).sum.toDouble/scoresOfQuestion(article, Final()).length.toDouble
 
     override def acceptedArticles(): Set[Int] = articlesScores.collect( { case (a, m) if averageFinalScore(a) >= 5 & m(Relevance()) >= 8 => a } ).toSet
 
     override def sortedAcceptedArticles(): List[(Int, Double)] = articlesScores.collect({ case (a, m) if averageFinalScore(a) >= 5 & m(Relevance()) >= 8 => (a, averageFinalScore(a)) }).distinct.sortWith(_._2 < _._2)
 
-    override def averageWeightedFinalScoreMap(): Map[Int, Double] = articlesScores.collect( { case (a, m) => (a, articlesScores.collect( { case (art, v) if art == a => v(Confidence())} ).zip(articlesScores.collect( { case (art, v) if art == a => v(Final())} )).map((x, y) => (x.toDouble * y.toDouble) / 10).sum/articlesScores.count((article, _) => article == a)) } ).toMap
+    override def averageWeightedFinalScoreMap(): Map[Int, Double] = articlesScores.collect( { case (a, _) => (a, scoresOfQuestion(a, Confidence()).zip(scoresOfQuestion(a, Final())).map((x, y) => (x.toDouble * y.toDouble) / 10).sum/articlesScores.count(_._1 == a)) } ).toMap
+
+    private def scoresOfQuestion(article: Int, question: Question): List[Int] = articlesScores.collect( { case (a, v) if a == article => v(question)} )
 
     extension(map: HashMap[Question, Int])
       private def fillMap(relevance: Int, significance: Int, confidence: Int, fin: Int): HashMap[Question, Int] =
