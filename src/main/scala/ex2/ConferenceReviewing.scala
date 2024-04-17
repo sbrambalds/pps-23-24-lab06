@@ -1,6 +1,6 @@
 package ex2
 
-import ex2.Question.{Final, Relevance}
+import ex2.Question.{Confidence, Final, Relevance}
 
 import scala.collection.immutable.HashMap
 
@@ -23,26 +23,22 @@ object ConferenceReviewing:
 
   def apply(): ConferenceReviewing = ConferenceReviewingImpl(List[(Int, Map[Question, Int])]())
 
-  private case class ConferenceReviewingImpl(private var articleScores: List[(Int, Map[Question, Int])]) extends ConferenceReviewing:
+  private case class ConferenceReviewingImpl(private var articlesScores: List[(Int, Map[Question, Int])]) extends ConferenceReviewing:
 
-    override def loadReview(article: Int, scores: Map[Question, Int]): Unit = articleScores = articleScores.::((article, scores))
+    override def loadReview(article: Int, scores: Map[Question, Int]): Unit = articlesScores = articlesScores.::((article, scores))
 
-    override def loadReview(article: Int, relevance: Int, significance: Int, confidence: Int, fin: Int): Unit =
-      val questions = new HashMap[Question, Int]().fillMap(relevance: Int, significance: Int, confidence: Int, fin: Int)
-      articleScores = articleScores.::((article, questions))
+    override def loadReview(article: Int, relevance: Int, significance: Int, confidence: Int, fin: Int): Unit = articlesScores = articlesScores.::((article, HashMap[Question, Int]().fillMap(relevance: Int, significance: Int, confidence: Int, fin: Int)))
 
-    override def orderedScores(article: Int, question: Question): List[Int] = articleScores.collect( { case (k, v) if k == article => v(question)} ).sortWith(_ < _)
+    override def orderedScores(article: Int, question: Question): List[Int] = articlesScores.collect( { case (a, v) if a == article => v(question)} ).sortWith(_ < _)
 
-    override def averageFinalScore(article: Int): Double =
-      val finalScores = orderedScores(article, Final())
-      finalScores.sum.toDouble/finalScores.length.toDouble
+    override def averageFinalScore(article: Int): Double = articlesScores.collect( { case (a, v) if a == article => v(Final())} ).sum.toDouble/articlesScores.collect( { case (a, v) if a == article => v(Final())} ).length.toDouble
 
-    override def acceptedArticles(): Set[Int] = articleScores.collect( { case (k, v) if averageFinalScore(k) >= 5 & v(Relevance()) >= 8 => k } ).toSet
+    override def acceptedArticles(): Set[Int] = articlesScores.collect( { case (a, m) if averageFinalScore(a) >= 5 & m(Relevance()) >= 8 => a } ).toSet
 
-    override def sortedAcceptedArticles(): List[(Int, Double)] = articleScores.collect({ case (k, v) if averageFinalScore(k) >= 5 & v(Relevance()) >= 8 => (k, averageFinalScore(k)) }).distinct.sortWith(_._2 < _._2)
+    override def sortedAcceptedArticles(): List[(Int, Double)] = articlesScores.collect({ case (a, m) if averageFinalScore(a) >= 5 & m(Relevance()) >= 8 => (a, averageFinalScore(a)) }).distinct.sortWith(_._2 < _._2)
 
-    override def averageWeightedFinalScoreMap(): Map[Int, Double] = ???
+    override def averageWeightedFinalScoreMap(): Map[Int, Double] = articlesScores.collect( { case (a, m) => (a, articlesScores.collect( { case (art, v) if art == a => v(Confidence())} ).zip(articlesScores.collect( { case (art, v) if art == a => v(Final())} )).map((x, y) => (x.toDouble * y.toDouble) / 10).sum/articlesScores.count((article, _) => article == a)) } ).toMap
 
     extension(map: HashMap[Question, Int])
       private def fillMap(relevance: Int, significance: Int, confidence: Int, fin: Int): HashMap[Question, Int] =
-        map.+((Question.Relevance(), relevance)).+((Question.Significance(), significance)).+((Question.Confidence(), confidence)).+((Question.Relevance(), relevance)).+((Question.Final(), fin))
+        map.+((Question.Relevance(), relevance)).+((Question.Significance(), significance)).+((Question.Confidence(), confidence)).+((Question.Final(), fin))
