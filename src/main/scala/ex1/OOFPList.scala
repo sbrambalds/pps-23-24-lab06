@@ -46,15 +46,18 @@ enum List[A]:
 
   // Exercise: implement the following methods
   def zipWithValue[B](value: B): List[(A, B)] = map((_, value))
-  def length(): Int = foldLeft(0)((a, b) => a + 1)
-  def zipWithIndex: List[(A, Int)] = this.foldRight(Nil())((a, b) => (a, this.length() - b.length() - 1) :: b)
+
+  def length(): Int = foldLeft(0)((a, _) => a + 1)
+
+  def zipWithIndex: List[(A, Int)] = this.foldRight(Nil())((a, l) => (a, this.length() - l.length() - 1) :: l)
+
   def partition(predicate: A => Boolean): (List[A], List[A]) = (filter(predicate), filter(!predicate(_)))
-  def span(predicate: A => Boolean): (List[A], List[A]) = foldLeft((Nil(), Nil()))((a, l) =>
-    if a._2.head.isEmpty && predicate(l)
-      then (a._1.append(l :: Nil()), a._2)
-      else (a._1, a._2.append(l :: Nil())))
-  def takeRight(n: Int): List[A] = this.foldRight((Nil()))((a, b) => if n - b.length() > 0 then a :: b else b)
-  def collect[B](predicate: PartialFunction[A, B]): List[B] = this.foldRight((Nil()))((a, b) => if predicate.isDefinedAt(a) then predicate(a) :: b else b)
+
+  def span(predicate: A => Boolean): (List[A], List[A]) = foldLeft((Nil(), Nil()))((l, a) => if l._2.head.isEmpty && predicate(a) then (l._1.append(a :: Nil()), l._2) else (l._1, l._2.append(a :: Nil())))
+
+  def takeRight(n: Int): List[A] = this.foldRight((Nil()))((a, l) => if n - l.length() > 0 then a :: l else l)
+
+  def collect[B](predicate: PartialFunction[A, B]): List[B] = this.foldRight((Nil()))((a, l) => if predicate.isDefinedAt(a) then predicate(a) :: l else l)
 
 // Factories
 object List:
