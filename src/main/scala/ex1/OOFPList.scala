@@ -44,18 +44,22 @@ enum List[A]:
     case Nil() => throw new IllegalStateException()
     case h :: t => t.foldLeft(h)(op)
 
+  def reverse: List[A] = foldLeft(Nil())((b, a) => a :: b)
+
+  def reverse(pair: (List[A], List[A])): (List[A], List[A]) = (pair._1.reverse, pair._2.reverse)
+
   // Exercise: implement the following methods
   def zipWithValue[B](value: B): List[(A, B)] = map((_, value))
 
   def length(): Int = foldLeft(0)((a, _) => a + 1)
 
-  def zipWithIndex: List[(A, Int)] = this.foldRight(Nil())((a, l) => (a, this.length() - l.length() - 1) :: l)
+  def zipWithIndex: List[(A, Int)] = foldRight((Nil().asInstanceOf[List[(A, Int)]], this.length() - 1))((b, a) => ((b, a._2) :: a._1, a._2 - 1))._1
 
-  def partition(predicate: A => Boolean): (List[A], List[A]) = (filter(predicate), filter(!predicate(_)))
+  def partition(predicate: A => Boolean): (List[A], List[A]) = reverse(foldLeft((Nil(), Nil()))((l, a) => if predicate(a) then (a :: l._1, l._2) else (l._1, a :: l._2)))
 
-  def span(predicate: A => Boolean): (List[A], List[A]) = foldLeft((Nil(), Nil()))((l, a) => if l._2.head.isEmpty && predicate(a) then (l._1.append(a :: Nil()), l._2) else (l._1, l._2.append(a :: Nil())))
+  def span(predicate: A => Boolean): (List[A], List[A]) = reverse(foldLeft((Nil(), Nil()))((l, a) => if l._2.head.isEmpty && predicate(a) then (a :: l._1, l._2) else (l._1, a :: l._2)))
 
-  def takeRight(n: Int): List[A] = this.foldRight((Nil()))((a, l) => if n - l.length() > 0 then a :: l else l)
+  def takeRight(n: Int): List[A] = foldRight((Nil().asInstanceOf[List[A]], n))((b, a) => if a._2 > 0 then (b :: a._1, a._2 - 1) else (a._1, a._2 - 1))._1
 
   def collect[B](predicate: PartialFunction[A, B]): List[B] = this.foldRight((Nil()))((a, l) => if predicate.isDefinedAt(a) then predicate(a) :: l else l)
 
